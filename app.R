@@ -14,14 +14,14 @@ if (!require(pacman)) {
   
 }
 
-pacman::p_load("shiny","tidyverse","readxl","shinycssloaders")
+pacman::p_load("shiny","tidyverse","readxl","shinycssloaders","shinyauthr")
 ###############################################################################
 # load in packages
 library(shiny)
 library(tidyverse)
 library(readxl)
 library(shinycssloaders)
-
+library(shinyauthr)
 #read in pollutant data
 
 no2<-read_xlsx("NO2_1990_2020.xlsx",sheet = "byYear")%>%
