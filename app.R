@@ -14,14 +14,14 @@ if (!require(pacman)) {
   
 }
 
-pacman::p_load("shiny","tidyverse","readxl","shinycssloaders","shinyauthr")
+pacman::p_load("shiny","tidyverse","readxl","shinycssloaders","shinymanager")
 ###############################################################################
 # load in packages
 library(shiny)
 library(tidyverse)
 library(readxl)
 library(shinycssloaders)
-library(shinyauthr)
+library(shinymanager)
 #read in pollutant data
 
 no2<-read_xlsx("NO2_1990_2020.xlsx",sheet = "byYear")%>%
@@ -54,22 +54,19 @@ graph_theme<- theme_linedraw()+
         legend.title = element_blank(),
         legend.text=element_text(size=10, face="bold"))
 ###########################################################################################
-# dataframe that holds usernames, passwords and other user data
-user_base <- tibble::tibble(
-  user = c("user1","user2"),
-  password = c("pass1", "pass2"),
-  permissions = c("admin", "standard"),
-  name = c("User One", "User Two")
+## dataframe that holds usernames, passwords and other user data
+credentials <- data.frame(
+  user = c("njdep", "shinymanager"), # mandatory
+  password = c("airmon", "12345"), # mandatory
+  start = c("2019-04-15"), # optinal (all others)
+  expire = c(NA, "2019-12-31"),
+  admin = c(FALSE, TRUE),
+  comment = "Simple and secure authentification mechanism 
+  for single ‘Shiny’ applications.",
+  stringsAsFactors = FALSE
 )
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-
-  # add logout button UI
-  div(class = "pull-right", shinyauthr::logoutUI(id = "logout")),
-  # add login panel UI function
-  shinyauthr::loginUI(id = "login"),
-  # setup table output to show user info after login
-  tableOutput("user_table"),
   
     # Application title
     titlePanel("Criteria Air Pollutant Trends"),
@@ -94,8 +91,18 @@ ui <- fluidPage(
     )
 )
 
+
+# Wrap your UI with secure_app
+ui <- secure_app(ui,background  = "linear-gradient(rgba(0, 0, 255, 0.5), 
+                    rgba(255, 255, 0, 0.5)),
+                    url('https://wetlandsinstitute.org/wp-content/uploads/2018/09/NJDEP-logo.jpg')no-repeat bottom fixed;")
+
 # Define server logic required to draw a histogram
 server <- function(input, output,session) {
+  
+  res_auth <- secure_server(
+    check_credentials = check_credentials(credentials)
+  )
   
   ### Create reactive dataframe based on pollutant info ###
   datasub<-reactive({
@@ -289,27 +296,6 @@ server <- function(input, output,session) {
     }
   )
   
-  # call login module supplying data frame, 
-  # user and password cols and reactive trigger
-  credentials <- shinyauthr::loginServer(
-    id = "login",
-    data = user_base,
-    user_col = user,
-    pwd_col = password,
-    log_out = reactive(logout_init())
-  )
-  
-  # call the logout module with reactive trigger to hide/show
-  logout_init <- shinyauthr::logoutServer(
-    id = "logout",
-    active = reactive(credentials()$user_auth)
-  )
-  
-  output$user_table <- renderTable({
-    # use req to only render results when credentials()$user_auth is TRUE
-    req(credentials()$user_auth)
-    credentials()$info
-  })
   
 }
 
