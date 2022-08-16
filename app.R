@@ -24,7 +24,7 @@ library(shiny)
 library(tidyverse)
 library(readxl)
 library(shinycssloaders)
-library(shinymanager)
+#library(shinymanager)
 ###############################################################################
 #read in pollutant data
 no2<-read_xlsx("NO2_1990_2020.xlsx",sheet = "byYear")%>%
@@ -75,16 +75,16 @@ graph_theme<- theme_linedraw()+
         legend.text=element_text(size=10, face="bold"))
 ###########################################################################################
 ## dataframe that holds usernames, passwords and other user data
-credentials <- data.frame(
-  user = c("njdep", "shinymanager"), # mandatory
-  password = c("airmon", "12345"), # mandatory
-  start = c("2019-04-15"), # optinal (all others)
-  expire = c(NA, "2019-12-31"),
-  admin = c(FALSE, TRUE),
-  comment = "Simple and secure authentification mechanism 
-  for single ‘Shiny’ applications.",
-  stringsAsFactors = FALSE
-)
+#credentials <- data.frame(
+#  user = c("njdep", "shinymanager"), # mandatory
+#  password = c("airmon", "12345"), # mandatory
+#  start = c("2019-04-15"), # optinal (all others)
+#  expire = c(NA, "2019-12-31"),
+#  admin = c(FALSE, TRUE),
+#  comment = "Simple and secure authentification mechanism 
+#  for single ‘Shiny’ applications.",
+#  stringsAsFactors = FALSE
+#)
 ###############################################################################
 # Define UI for application that draws a histogram
 ui <- fluidPage(
@@ -111,16 +111,16 @@ ui <- fluidPage(
 )
 ###############################################################################
 # Wrap your UI with secure_app
-ui <- secure_app(ui,background  = "linear-gradient(rgba(0, 0, 255, 0.5), 
-                    rgba(255, 255, 0, 0.5)),
-                    url('https://wetlandsinstitute.org/wp-content/uploads/2018/09/NJDEP-logo.jpg')no-repeat bottom fixed;")
+#ui <- secure_app(ui,background  = "linear-gradient(rgba(0, 0, 255, 0.5), 
+#                    rgba(255, 255, 0, 0.5)),
+#                    url('https://wetlandsinstitute.org/wp-content/uploads/2018/09/NJDEP-logo.jpg')no-repeat bottom fixed;")
 ###############################################################################
 # Define server logic required to draw a histogram
 server <- function(input, output,session) {
   
-  res_auth <- secure_server(
-    check_credentials = check_credentials(credentials)
-  )
+  #res_auth <- secure_server(
+  #  check_credentials = check_credentials(credentials)
+  #)
   
   ### Create reactive dataframe based on pollutant info ###
   datasub<-reactive({
