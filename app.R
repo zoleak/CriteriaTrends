@@ -157,7 +157,7 @@ server <- function(input, output,session) {
     if(input$pollutant == "ozone" & length(input$station_input) == 1){
       ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
         geom_line(size = 1.3)+
-        ggtitle(paste0(datasub3()$Station_Name," Ozone Trend\n 4th-Highest Daily Maximum 8-Hour Concentration (ppm)",sep = "")) +
+        ggtitle(paste0(unique(datasub3()$Station_Name)," Ozone Trend\n 4th-Highest Daily Maximum 8-Hour Concentration (ppm)",sep = "")) +
         #ggtitle("Ocean County Ozone Trend\n4th-Highest Daily Maximum 8-Hour Concentration (ppm)")+
         ylab("Concentration, Parts per Million (ppm)") +
         scale_y_continuous(expand = c(0,0),limits = c(0, 0.130),
