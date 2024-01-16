@@ -27,27 +27,29 @@ library(shinycssloaders)
 #library(shinymanager)
 ###############################################################################
 #read in pollutant data
-no2<-read_xlsx("NO2_1990_2020.xlsx",sheet = "byYear")%>%
+no2<-read_xlsx("data/NO2_1990_2022.xlsx",sheet = "byYear")%>%
     select(Year:value)%>%
     mutate(pollutant = "no2")
 
-so2<-read_xlsx("SO2_1990_2020.xlsx",sheet = "byYear")%>%
+so2<-read_xlsx("data/SO2_1990_2022.xlsx",sheet = "byYear")%>%
     mutate(pollutant = "so2")
 
-ozone<-read_xlsx("ozone_1990_2020.xlsx",sheet = "byYear")%>%
+ozone<-read_xlsx("data/ozone_1990_2022.xlsx",sheet = "byYear")%>%
     mutate(pollutant = "ozone")
 
-co<-read_xlsx("CO_1990_2020.xlsx",sheet = "byYear")%>%
+co<-read_xlsx("data/CO_1990_2022.xlsx",sheet = "byYear")%>%
     mutate(pollutant = "co")
 
-pm10<-read_xlsx("PM10_1990_2020.xlsx",sheet = "byYear")%>%
+pm10<-read_xlsx("data/PM10_1990_2022.xlsx",sheet = "byYear")%>%
   mutate(pollutant = "PM10",value=as.numeric(value))
 
-pm2.5<-read_xlsx("PM2.5_1999_2020.xlsx", sheet = "byYear",skip = 8)%>%
-  select(1:5)%>%
-  mutate(pollutant = "PM2.5")
+pm2.5<-read_xlsx("data/PM2.5_1999_2022.xlsx")%>%
+  pivot_longer('1999':'2022', names_to = "Year", values_to = "value")%>%
+  mutate(pollutant = "PM2.5",
+    Year = as.numeric(Year))
+  
 
-pm2.5_annual<-read_xlsx("PM2.5_1999_2020_annual_weighted_mean.xlsx")%>%
+pm2.5_annual<-read_xlsx("data/PM2.5_1999_2020_annual_weighted_mean.xlsx")%>%
   pivot_longer('1999':'2020', names_to = "Year", values_to = "value")%>%
   mutate(pollutant = "PM2.5 Annual Average",
          State = "NJ",
@@ -166,7 +168,7 @@ server <- function(input, output,session) {
         geom_segment(aes(x=1997,xend=2008,y=0.08,yend=0.08),color="red",size =1.3,linetype = "dashed")+
         geom_segment(aes(x=2008,xend=2016,y=0.075,yend=0.075),color="red",size =1.3,linetype = "dashed")+
         geom_segment(aes(x=2016,xend=2018,y=0.070,yend=0.070),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2020,by=1))+
+        scale_x_continuous(breaks=seq(1990,2022,by=1))+
         annotate("text",
                  x = c(2002, 2011, 2017),
                  y = c(0.078, 0.059, 0.055),
@@ -186,7 +188,7 @@ server <- function(input, output,session) {
         geom_segment(aes(x=1997,xend=2008,y=0.08,yend=0.08),color="red",size =1.3,linetype = "dashed")+
         geom_segment(aes(x=2008,xend=2016,y=0.075,yend=0.075),color="red",size =1.3,linetype = "dashed")+
         geom_segment(aes(x=2016,xend=2018,y=0.070,yend=0.070),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2020,by=1))+
+        scale_x_continuous(breaks=seq(1990,2022,by=1))+
         annotate("text",
                  x = c(2002, 2011, 2017),
                  y = c(0.078, 0.059, 0.055),
@@ -205,7 +207,7 @@ server <- function(input, output,session) {
         ylab("Concentration, Parts per Billion (ppb)") +
         scale_y_continuous(expand = c(0,0),limits = c(0, 150))+
         geom_segment(aes(x=2010,xend=2018,y=100 ,yend=100 ),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2020,by=1))+
+        scale_x_continuous(breaks=seq(1990,2022,by=1))+
         annotate("text",
                  x = c(2014),
                  y = c(90),
@@ -223,7 +225,7 @@ server <- function(input, output,session) {
         ylab("Concentration, Parts per Billion (ppb)") +
         scale_y_continuous(expand = c(0,0),limits = c(0, 150))+
         geom_segment(aes(x=2010,xend=2018,y=100 ,yend=100 ),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2020,by=1))+
+        scale_x_continuous(breaks=seq(1990,2022,by=1))+
         annotate("text",
                  x = c(2014),
                  y = c(90),
@@ -240,7 +242,7 @@ server <- function(input, output,session) {
         ggtitle(paste0(datasub3()$Station_Name," Carbon Monoxide (CO) Trend\n2nd Highest 8-Hour Average Concentration (ppm)",sep = "")) +
         ylab("Concentration, Parts per Million (ppm)") +
         scale_y_continuous(expand = c(0,0),limits = c(0, 11.5))+
-        scale_x_continuous(breaks=seq(1990,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
         geom_segment(aes(x=1990,xend=2018,y=9,yend=9),color="red",size =1.3,linetype = "dashed")+
         annotate("text",
                  x = c(2010),
@@ -258,7 +260,7 @@ server <- function(input, output,session) {
       ggtitle(paste0(datasub3()$County," County Carbon Monoxide (CO) Trend\n2nd Highest 8-Hour Average Concentration (ppm)",sep = "")) +
       ylab("Concentration, Parts per Million (ppm)") +
       scale_y_continuous(expand = c(0,0),limits = c(0, 11.5))+
-      scale_x_continuous(breaks=seq(1990,2020,by=1)) +
+      scale_x_continuous(breaks=seq(1990,2022,by=1)) +
       geom_segment(aes(x=1990,xend=2018,y=9,yend=9),color="red",size =1.3,linetype = "dashed")+
       annotate("text",
                x = c(2010),
@@ -274,7 +276,7 @@ server <- function(input, output,session) {
         geom_line(size = 1.3)+
         #ggplot(df,aes(Year,Percentile_99th))+geom_line(colour="#109f45",size=1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 200))+
-        scale_x_continuous(breaks=seq(1990,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
         ggtitle(paste0(datasub3()$Station_Name," Sulfur Dioxide (SO2) Trend\n99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",sep = "")) +
         #ggtitle(expression(bold(atop("Essex County Sulfur Dioxide (SO"[2]*") Trend","99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)")))) +
         ylab("Concentration, Parts per Billion (ppb)") +
@@ -292,7 +294,7 @@ server <- function(input, output,session) {
         geom_line(size = 1.3)+
         #ggplot(df,aes(Year,Percentile_99th))+geom_line(colour="#109f45",size=1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 200))+
-        scale_x_continuous(breaks=seq(1990,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
         ggtitle(paste0(datasub3()$County," County Sulfur Dioxide (SO2) Trend\n99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",sep = "")) +
         #ggtitle(expression(bold(atop("Essex County Sulfur Dioxide (SO"[2]*") Trend","99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)")))) +
         ylab("Concentration, Parts per Billion (ppb)") +
@@ -309,7 +311,7 @@ server <- function(input, output,session) {
       ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
         geom_line(size = 1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 160))+
-        scale_x_continuous(breaks=seq(1990,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
         ggtitle(paste0(datasub3()$Station_Name," Particulate Matter(PM10) Trend\n2nd Highest 24-Hour Average Concentration (µg/m3)",sep = "")) +
         #ggtitle(expression(paste(bold(atop("Hudson County Particulate Matter (PM"[10]*") Trend"," 2nd-Highest 24-Hour Average Concentration (µg/m"^3*")"))))) +
         ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
@@ -326,7 +328,7 @@ server <- function(input, output,session) {
       ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
         geom_line(size = 1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 160))+
-        scale_x_continuous(breaks=seq(1990,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
         ggtitle(paste0(datasub3()$County," County Particulate Matter(PM10) Trend\n2nd Highest 24-Hour Average Concentration (µg/m3)",sep = "")) +
         #ggtitle(expression(paste(bold(atop("Hudson County Particulate Matter (PM"[10]*") Trend"," 2nd-Highest 24-Hour Average Concentration (µg/m"^3*")"))))) +
         ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
@@ -343,7 +345,7 @@ server <- function(input, output,session) {
       ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
         geom_line(size = 1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 75))+
-        scale_x_continuous(breaks=seq(1999,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
         ggtitle(expression(paste(bold(atop("Particulate Matter (PM"[2.5]*") Trend"," of the 98th Percentile 24-Hour Average Concentration (µg/m"^3*")"))))) +
         ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
         geom_segment(aes(x=1999,xend=2006,y=65,yend=65),color="red",size =1.3,linetype = "dashed")+
@@ -361,7 +363,7 @@ server <- function(input, output,session) {
       ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
         geom_line(size = 1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 75))+
-        scale_x_continuous(breaks=seq(1999,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
         ggtitle(paste0(datasub3()$County," County Particulate Matter (PM2.5) Trend\nof the 98th Percentile 24-Hour Average Concentration (µg/m3)")) +
         ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
         geom_segment(aes(x=1999,xend=2006,y=65,yend=65),color="red",size =1.3,linetype = "dashed")+
@@ -379,7 +381,7 @@ server <- function(input, output,session) {
       ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
         geom_line(size = 1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 20))+
-        scale_x_continuous(breaks=seq(1999,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
         ggtitle(expression(paste(bold(atop("Particulate Matter (PM"[2.5]*") Trend"," of the Annual Average Concentration (µg/m"^3*")"))))) +
         ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
         geom_segment(aes(x=1999,xend=2013,y=15,yend=15),color="red",size =1.3,linetype = "dashed")+
@@ -397,7 +399,7 @@ server <- function(input, output,session) {
       ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
         geom_line(size = 1.3)+
         scale_y_continuous(expand = c(0,0),limits = c(0, 20))+
-        scale_x_continuous(breaks=seq(1999,2020,by=1)) +
+        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
         ggtitle(paste0(datasub3()$County," County Particulate Matter (PM2.5) Trend\nof the Annual Average Concentration (µg/m3)"))+
         ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
         geom_segment(aes(x=1999,xend=2013,y=15,yend=15),color="red",size =1.3,linetype = "dashed")+
