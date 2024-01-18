@@ -97,7 +97,8 @@ ui <- fluidPage(
     # Sidebar with a drop down menus to filter data
     sidebarLayout(
         sidebarPanel(
-            selectInput("pollutant",label =em("Select Pollutant:",style="color:Navy;font-weight: bold;"),
+            selectInput("pollutant",label =em("Select Pollutant:",
+                                              style="color:Navy;font-weight: bold;"),
                         choices = unique(criteriap$pollutant)),
             uiOutput("county"),
             uiOutput("station"),
@@ -421,9 +422,25 @@ server <- function(input, output,session) {
   ###############################################################################
   # Download button to save plots from app
   output$downloadPlot <- downloadHandler(
-    filename = "plot_download.pdf",
-    content = function(file){
-      ggsave(file,device = "pdf",width = 11.5,height = 8)
+    filename = function() {
+      # Get the selected pollutant
+      pollutant <- input$pollutant
+      
+      # Get the selected sites or county
+      selected_locations <- if (length(input$station_input) == 1) {
+        input$station_input
+      } else {
+        input$county_input
+      }
+      
+      # Create a dynamic filename
+      filename <- paste("plot_", pollutant, "_", paste(selected_locations, collapse = "_"),
+                        ".pdf", sep = "")
+      
+      return(filename)
+    },
+    content = function(file) {
+      ggsave(file, device = "pdf", width = 11.5, height = 8)
     }
   )
   
