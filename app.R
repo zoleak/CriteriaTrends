@@ -17,13 +17,14 @@ if (!require(pacman)) {
   
 }
 
-pacman::p_load("shiny","tidyverse","readxl","shinycssloaders","shinymanager")
+pacman::p_load("shiny","tidyverse","readxl","shinycssloaders","shinymanager","shinyWidgets")
 ###############################################################################
 # load in packages
 library(shiny)
 library(tidyverse)
 library(readxl)
 library(shinycssloaders)
+library(shinyWidgets)
 #library(shinymanager)
 ###############################################################################
 #read in pollutant data
@@ -90,26 +91,33 @@ graph_theme<- theme_linedraw()+
 ###############################################################################
 # Define UI for application that draws a histogram
 ui <- fluidPage(
-  
+  useShinydashboard(),
     # Application title
     titlePanel("Criteria Air Pollutant Trends"),
 
     # Sidebar with a drop down menus to filter data
     sidebarLayout(
         sidebarPanel(
-            selectInput("pollutant",label =em("Select Pollutant:",
-                                              style="color:Navy;font-weight: bold;"),
-                        choices = unique(criteriap$pollutant)),
+          selectInput("pollutant", label = strong("Select Pollutant:", style = "color:Navy;font-weight: bold;"),
+                      choices = unique(criteriap$pollutant)),
             uiOutput("county"),
             uiOutput("station"),
-            downloadButton('downloadPlot','Download Plot')
-            
+          downloadBttn(
+            outputId = "downloadPlot",  # Keep the same outputId
+            label = "Download Plot",
+            style = "jelly",           # Choose a stylish style
+            color = "primary"        # Customize color
+          )            
         ),
     # Main panel 
         mainPanel(
+          fluidRow(
+          uiOutput("dynamicBox"),
+          uiOutput("dynamicBoxMin"),
+          uiOutput("dynamicBoxAvg"),
            plotOutput("plot1")%>%
              withSpinner(type = 5, color = "blue")
-        )
+        ))
     )
 )
 ###############################################################################
@@ -153,272 +161,178 @@ server <- function(input, output,session) {
     return(foo)
     
   })
-  # This creates the plot 
-  output$plot1 <- renderPlot({
-    req(input$pollutant)
-    req(input$station_input)
-    if(input$pollutant == "ozone" & length(input$station_input) == 1){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        ggtitle(paste0(unique(datasub3()$Station_Name)," Ozone Trend\n 4th-Highest Daily Maximum 8-Hour Concentration (ppm)",sep = "")) +
-        #ggtitle("Ocean County Ozone Trend\n4th-Highest Daily Maximum 8-Hour Concentration (ppm)")+
-        ylab("Concentration, Parts per Million (ppm)") +
-        scale_y_continuous(expand = c(0,0),limits = c(0, 0.130),
-                           labels = scales::number_format(accuracy = 0.001,
-                                                          decimal.mark = "."))+
-        geom_segment(aes(x=1997,xend=2008,y=0.08,yend=0.08),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2008,xend=2016,y=0.075,yend=0.075),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2016,xend=2018,y=0.070,yend=0.070),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2022,by=1))+
-        annotate("text",
-                 x = c(2002, 2011, 2017),
-                 y = c(0.078, 0.059, 0.055),
-                 label = c("1997 8-Hour NAAQS = 0.08 ppm",
-                           "2008 8-Hour NAAQS = 0.075 ppm" , "2016 8-Hour\nNAAQS = 0.070 ppm"),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    else if(input$pollutant == "ozone" && length(input$station_input>1)){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        ggtitle(paste0(datasub3()$County," County Ozone Trend\n 4th-Highest Daily Maximum 8-Hour Concentration (ppm)",sep = ""))+
-        ylab("Concentration, Parts per Million (ppm)") +
-        scale_y_continuous(expand = c(0,0),limits = c(0, 0.130),
-                           labels = scales::number_format(accuracy = 0.001,
-                                                          decimal.mark = "."))+
-        geom_segment(aes(x=1997,xend=2008,y=0.08,yend=0.08),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2008,xend=2016,y=0.075,yend=0.075),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2016,xend=2018,y=0.070,yend=0.070),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2022,by=1))+
-        annotate("text",
-                 x = c(2002, 2011, 2017),
-                 y = c(0.078, 0.059, 0.055),
-                 label = c("1997 8-Hour NAAQS = 0.08 ppm",
-                           "2008 8-Hour NAAQS = 0.075 ppm" , "2016 8-Hour\nNAAQS = 0.070 ppm"),
-                 family = "", fontface = 3, size=4) +
-        graph_theme
-    }
-    
-    else if(input$pollutant == "no2"& length(input$station_input) == 1){
-      req(input$pollutant)
-      req(input$station_input)
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        ggtitle(expression(bold(atop("Nitrogen Dioxide (NO"[2]*") Trend","98th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)")))) +
-        ylab("Concentration, Parts per Billion (ppb)") +
-        scale_y_continuous(expand = c(0,0),limits = c(0, 150))+
-        geom_segment(aes(x=2010,xend=2018,y=100 ,yend=100 ),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2022,by=1))+
-        annotate("text",
-                 x = c(2014),
-                 y = c(90),
-                 label = c("2010 1-Hour NAAQS = 100  ppb"),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "no2" && length(input$station_input>1)){
-      req(input$pollutant)
-      req(input$station_input)
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        ggtitle(paste0(datasub3()$County," County Nitrogen Dioxide (NO2) Trend\n98th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)")) +
-        ylab("Concentration, Parts per Billion (ppb)") +
-        scale_y_continuous(expand = c(0,0),limits = c(0, 150))+
-        geom_segment(aes(x=2010,xend=2018,y=100 ,yend=100 ),color="red",size =1.3,linetype = "dashed")+
-        scale_x_continuous(breaks=seq(1990,2022,by=1))+
-        annotate("text",
-                 x = c(2014),
-                 y = c(90),
-                 label = c("2010 1-Hour NAAQS = 100  ppb"),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "co"& length(input$station_input) == 1){
-      req(input$pollutant)
-      req(input$station_input)
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        ggtitle(paste0(datasub3()$Station_Name," Carbon Monoxide (CO) Trend\n2nd Highest 8-Hour Average Concentration (ppm)",sep = "")) +
-        ylab("Concentration, Parts per Million (ppm)") +
-        scale_y_continuous(expand = c(0,0),limits = c(0, 11.5))+
-        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
-        geom_segment(aes(x=1990,xend=2018,y=9,yend=9),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2010),
-                 y = c(8.5),
-                 label = c("8 Hour NAAQS = 9 ppm"),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-  else if(input$pollutant == "co"& length(input$station_input) > 1){
-    req(input$pollutant)
-    req(input$station_input)
-    ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-      geom_line(size = 1.3)+
-      ggtitle(paste0(datasub3()$County," County Carbon Monoxide (CO) Trend\n2nd Highest 8-Hour Average Concentration (ppm)",sep = "")) +
-      ylab("Concentration, Parts per Million (ppm)") +
-      scale_y_continuous(expand = c(0,0),limits = c(0, 11.5))+
-      scale_x_continuous(breaks=seq(1990,2022,by=1)) +
-      geom_segment(aes(x=1990,xend=2018,y=9,yend=9),color="red",size =1.3,linetype = "dashed")+
-      annotate("text",
-               x = c(2010),
-               y = c(8.5),
-               label = c("8 Hour NAAQS = 9 ppm"),
-               family = "", fontface = 3, size=4) + 
+  
+  # Render the UI Output for Highest Concentration
+  output$dynamicBox <- renderUI({
+    # Your existing logic for highest concentration box here
+    max_row <- datasub3()[which.max(datasub3()$value), ]
+    box_content <- sprintf("Year: %d <br> Value: %.2f", 
+                           max_row$Year, max_row$value)
+    box_content_div <- div(
+      HTML(box_content)
+    )
+    box(
+      title = "Highest Concentration",
+      width = 4,
+      solidHeader = FALSE,
+      background = "navy",
+      icon = icon("chart-line"),
+      box_content_div
+    )
+  })
+  
+  # Render the UI Output for Minimum Concentration/Year
+  output$dynamicBoxMin <- renderUI({
+    # Your logic for minimum concentration/year box here
+    min_row <- datasub3()[which.min(datasub3()$value), ]
+    box_content_min <- sprintf("Year: %d <br> Value: %.2f", 
+                               min_row$Year, min_row$value)
+    box_content_div_min <- div(
+      HTML(box_content_min)
+    )
+    box(
+      title = "Minimum Concentration",
+      width = 4,
+      solidHeader = FALSE,
+      background = "navy",
+      icon = icon("arrow-down"),
+      box_content_div_min
+    )
+  })
+  
+  # Render the UI Output for Average Concentration
+  output$dynamicBoxAvg <- renderUI({
+    # Your logic for average concentration box here
+    avg_value <- mean(datasub3()$value)
+    box_content_avg <- sprintf("Average: %.2f", avg_value)
+    box_content_div_avg <- div(
+      HTML(box_content_avg)
+    )
+    box(
+      title = "Average Concentration",
+      width = 4,
+      solidHeader = FALSE,
+      background = "navy",
+      icon = icon("calculator"),
+      box_content_div_avg
+    )
+  })
+  
+  # Function to generate plots
+  generate_plot <- function(data, pollutant, county,title,stations) {
+    ggplot(data, aes(x = Year, y = value, color = Station_Name)) +
+      geom_line(size = 1.3) +
+      ggtitle(title) +
+      ylab(get_ylab_text(pollutant)) +
+      get_additional_layers(pollutant) +
       graph_theme
   }
   
+  # Function to get NAAQS text
+  get_naaqs_text <- function(pollutant) {
+    naaqs_text <- switch(pollutant,
+                         "ozone" = "4th-Highest Daily Maximum 8-Hour Concentration (ppm)",
+                         "no2" = "98th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",
+                         "co" = "2nd Highest 8-Hour Average Concentration (ppm)",
+                         "so2" = "99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",
+                         "PM10" = "2nd Highest 24-Hour Average Concentration (µg/m³)",
+                         "PM2.5" = "98th Percentile 24-Hour Average Concentration (µg/m³)",
+                         "PM2.5 Annual Average" = "Annual Average Concentration (µg/m³)"
+    )
+    return(naaqs_text)
+  }
   
-    else if(input$pollutant == "so2" & length(input$station_input) == 1){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        #ggplot(df,aes(Year,Percentile_99th))+geom_line(colour="#109f45",size=1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 200))+
-        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
-        ggtitle(paste0(datasub3()$Station_Name," Sulfur Dioxide (SO2) Trend\n99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",sep = "")) +
-        #ggtitle(expression(bold(atop("Essex County Sulfur Dioxide (SO"[2]*") Trend","99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)")))) +
-        ylab("Concentration, Parts per Billion (ppb)") +
-        geom_segment(aes(x=2010,xend=2018,y=75,yend=75),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2012),
-                 y = c(60),
-                 label = c("2010 1-Hour NAAQS = 75 ppb"),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
+  # Function to get y-axis label text
+  get_ylab_text <- function(pollutant) {
+    ylab_text <- switch(pollutant,
+                        "ozone" = "Concentration, Parts per Million (ppm)",
+                        "no2" = "Concentration, Parts per Billion (ppb)",
+                        "co" = "Concentration, Parts per Million (ppm)",
+                        "so2" = "Concentration, Parts per Billion (ppb)",
+                        "PM10" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
+                        "PM2.5" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
+                        "PM2.5 Annual Average" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))
+    )
+    return(ylab_text)
+  }
+  
+  # Function to add additional layers to the plot
+  get_additional_layers <- function(pollutant) {
+    additional_layers <- switch(pollutant,
+                                "ozone" = list(
+                                  geom_segment(aes(x = 1997, xend = 2008, y = 0.08, yend = 0.08), color = "red", size = 1.3, linetype = "dashed"),
+                                  geom_segment(aes(x = 2008, xend = 2016, y = 0.075, yend = 0.075), color = "red", size = 1.3, linetype = "dashed"),
+                                  geom_segment(aes(x = 2016, xend = 2018, y = 0.070, yend = 0.070), color = "red", size = 1.3, linetype = "dashed"),
+                                  scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
+                                  annotate("text", x = c(2002, 2011, 2017), y = c(0.078, 0.059, 0.055),
+                                           label = c("1997 8-Hour NAAQS = 0.08 ppm", "2008 8-Hour NAAQS = 0.075 ppm", "2016 8-Hour NAAQS = 0.070 ppm"),
+                                           family = "", fontface = 3, size = 4)
+                                ),
+                                "no2" = list(
+                                  geom_segment(aes(x = 2010, xend = 2018, y = 100, yend = 100), color = "red", size = 1.3, linetype = "dashed"),
+                                  scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
+                                  annotate("text", x = c(2014), y = c(90), label = c("2010 1-Hour NAAQS = 100 ppb"),
+                                           family = "", fontface = 3, size = 4)
+                                ),
+                                "co" = list(
+                                  geom_segment(aes(x = 1990, xend = 2018, y = 9, yend = 9), color = "red", size = 1.3, linetype = "dashed"),
+                                  scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
+                                  annotate("text", x = c(2010), y = c(8.5), label = c("8 Hour NAAQS = 9 ppm"),
+                                           family = "", fontface = 3, size = 4)
+                                ),
+                                "so2" = list(
+                                  geom_segment(aes(x = 2010, xend = 2018, y = 75, yend = 75), color = "red", size = 1.3, linetype = "dashed"),
+                                  scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
+                                  annotate("text", x = c(2012), y = c(60), label = c("2010 1-Hour NAAQS = 75 ppb"),
+                                           family = "", fontface = 3, size = 4)
+                                ),
+                                "PM10" = list(
+                                  geom_segment(aes(x = 1990, xend = 2018, y = 150, yend = 150), color = "red", size = 1.3, linetype = "dashed"),
+                                  scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
+                                  annotate("text", x = c(2010), y = c(145), label = c("24-Hour NAAQS = 150 µg/m^3"),
+                                           family = "", fontface = 3, size = 4)
+                                ),
+                                "PM2.5" = list(
+                                  geom_segment(aes(x = 1999, xend = 2006, y = 65, yend = 65), color = "red", size = 1.3, linetype = "dashed"),
+                                  geom_segment(aes(x = 2006, xend = 2018, y = 35, yend = 35), color = "red", size = 1.3, linetype = "dashed"),
+                                  scale_x_continuous(breaks = seq(1999, 2022, by = 1)),
+                                  annotate("text", x = c(2002, 2012), y = c(60, 30), label = c("1999 24-Hour NAAQS = 65 µg/m^3",
+                                                                                               "2006 24-Hour NAAQS = 35 µg/m^3"),
+                                           family = "", fontface = 3, size = 4)
+                                ),
+                                "PM2.5 Annual Average" = list(
+                                  geom_segment(aes(x = 2000, xend = 2018, y = 15, yend = 15), color = "red", size = 1.3, linetype = "dashed"),
+                                  scale_x_continuous(breaks = seq(2000, 2022, by = 1)),
+                                  annotate("text", x = c(2013), y = c(14), label = c("Annual NAAQS = 15 µg/m^3"),
+                                           family = "", fontface = 3, size = 4)
+                                )
+    )
+    return(additional_layers)
+  }
+  
+  # Modify your renderPlot section to call the function
+  output$plot1 <- renderPlot({
+    req(input$pollutant)
+    req(input$station_input)
+    
+    # Get the county name
+    county_name <- datasub3()$County
+    
+    # Get the station name(s)
+    station_name <- input$station_input
+    
+    # Check if there is more than 1 station selected
+    if (length(station_name) > 1) {
+      title_text  <- paste(county_name, " County ", input$pollutant, " Trend\n", get_naaqs_text(input$pollutant))
+    } else {
+      title_text  <- paste(station_name, input$pollutant, " Trend\n", get_naaqs_text(input$pollutant))
     }
     
-    else if(input$pollutant == "so2" && length(input$station_input>1)){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        #ggplot(df,aes(Year,Percentile_99th))+geom_line(colour="#109f45",size=1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 200))+
-        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
-        ggtitle(paste0(datasub3()$County," County Sulfur Dioxide (SO2) Trend\n99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",sep = "")) +
-        #ggtitle(expression(bold(atop("Essex County Sulfur Dioxide (SO"[2]*") Trend","99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)")))) +
-        ylab("Concentration, Parts per Billion (ppb)") +
-        geom_segment(aes(x=2010,xend=2018,y=75,yend=75),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2012),
-                 y = c(60),
-                 label = c("2010 1-Hour NAAQS = 75 ppb"),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "PM10"& length(input$station_input) == 1){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 160))+
-        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
-        ggtitle(paste0(datasub3()$Station_Name," Particulate Matter(PM10) Trend\n2nd Highest 24-Hour Average Concentration (µg/m3)",sep = "")) +
-        #ggtitle(expression(paste(bold(atop("Hudson County Particulate Matter (PM"[10]*") Trend"," 2nd-Highest 24-Hour Average Concentration (µg/m"^3*")"))))) +
-        ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
-        geom_segment(aes(x=1990,xend=2018,y=150,yend=150),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2010),
-                 y = c(145),
-                 label = c(expression("24-Hour NAAQS = 150 µg/m"^3)),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "PM10"& length(input$station_input) > 1){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 160))+
-        scale_x_continuous(breaks=seq(1990,2022,by=1)) +
-        ggtitle(paste0(datasub3()$County," County Particulate Matter(PM10) Trend\n2nd Highest 24-Hour Average Concentration (µg/m3)",sep = "")) +
-        #ggtitle(expression(paste(bold(atop("Hudson County Particulate Matter (PM"[10]*") Trend"," 2nd-Highest 24-Hour Average Concentration (µg/m"^3*")"))))) +
-        ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
-        geom_segment(aes(x=1990,xend=2018,y=150,yend=150),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2010),
-                 y = c(145),
-                 label = c(expression("24-Hour NAAQS = 150 µg/m"^3)),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "PM2.5" & length(input$station_input) == 1){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 75))+
-        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
-        ggtitle(expression(paste(bold(atop("Particulate Matter (PM"[2.5]*") Trend"," of the 98th Percentile 24-Hour Average Concentration (µg/m"^3*")"))))) +
-        ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
-        geom_segment(aes(x=1999,xend=2006,y=65,yend=65),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2006,xend=2018,y=35,yend=35),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2002,2015),
-                 y = c(63,32),
-                 label = c(expression("24-Hour NAAQS = 65 µg/m"^3),
-                           expression("24-Hour NAAQS = 35 µg/m"^3)),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "PM2.5" && length(input$station_input>1)){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 75))+
-        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
-        ggtitle(paste0(datasub3()$County," County Particulate Matter (PM2.5) Trend\nof the 98th Percentile 24-Hour Average Concentration (µg/m3)")) +
-        ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
-        geom_segment(aes(x=1999,xend=2006,y=65,yend=65),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2006,xend=2018,y=35,yend=35),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2002,2015),
-                 y = c(63,32),
-                 label = c(expression("24-Hour NAAQS = 65 µg/m"^3),
-                           expression("24-Hour NAAQS = 35 µg/m"^3)),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "PM2.5 Annual Average" & length(input$station_input) == 1){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 20))+
-        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
-        ggtitle(expression(paste(bold(atop("Particulate Matter (PM"[2.5]*") Trend"," of the Annual Average Concentration (µg/m"^3*")"))))) +
-        ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
-        geom_segment(aes(x=1999,xend=2013,y=15,yend=15),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2013,xend=2018,y=12,yend=12),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2003,2015),
-                 y = c(16,11),
-                 label = c(expression("Annual NAAQS = 15 µg/m"^3),
-                           expression("Annual NAAQS = 12 µg/m"^3)),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    else if(input$pollutant == "PM2.5 Annual Average"&& length(input$station_input>1)){
-      ggplot(data = datasub3(),aes(x=Year,y=value,color = datasub3()$Station_Name))+
-        geom_line(size = 1.3)+
-        scale_y_continuous(expand = c(0,0),limits = c(0, 20))+
-        scale_x_continuous(breaks=seq(1999,2022,by=1)) +
-        ggtitle(paste0(datasub3()$County," County Particulate Matter (PM2.5) Trend\nof the Annual Average Concentration (µg/m3)"))+
-        ylab(expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))) +
-        geom_segment(aes(x=1999,xend=2013,y=15,yend=15),color="red",size =1.3,linetype = "dashed")+
-        geom_segment(aes(x=2013,xend=2018,y=12,yend=12),color="red",size =1.3,linetype = "dashed")+
-        annotate("text",
-                 x = c(2003,2015),
-                 y = c(16,11),
-                 label = c(expression("Annual NAAQS = 15 µg/m"^3),
-                           expression("Annual NAAQS = 12 µg/m"^3)),
-                 family = "", fontface = 3, size=4) + 
-        graph_theme
-    }
-    
-    
-    
-    
-    
+    generate_plot(datasub3(), input$pollutant,county_name ,title_text , input$station_input)
   })
+  
+  
+  
   ###############################################################################
   # Download button to save plots from app
   output$downloadPlot <- downloadHandler(
