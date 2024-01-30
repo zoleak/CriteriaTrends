@@ -19,7 +19,7 @@ if (!require(pacman)) {
 
 pacman::p_load("shiny","tidyverse","readxl","shinycssloaders","shinymanager","shinyWidgets")
 ###############################################################################
-# load in packages
+# load in necessary packages
 library(shiny)
 library(tidyverse)
 library(readxl)
@@ -89,7 +89,7 @@ graph_theme<- theme_linedraw()+
 #  stringsAsFactors = FALSE
 #)
 ###############################################################################
-# Define UI for application that draws a histogram
+# Define UI for application
 ui <- fluidPage(
   useShinydashboard(),
     # Application title
@@ -107,7 +107,16 @@ ui <- fluidPage(
             label = "Download Plot",
             style = "jelly",           # Choose a stylish style
             color = "primary"        # Customize color
-          )            
+          ),
+          downloadBttn(
+            outputId = "downloaddata",  # Give a new outputId
+            label = "Download Data",
+            style = "jelly",
+            color = "success"  # Green color
+          ),
+          # Adding a link to EPA website
+          tags$a(href = "https://www.epa.gov/criteria-air-pollutants", target = "_blank",
+                 icon("question-circle"), " Learn more")
         ),
     # Main panel 
         mainPanel(
@@ -126,7 +135,7 @@ ui <- fluidPage(
 #                    rgba(255, 255, 0, 0.5)),
 #                    url('https://wetlandsinstitute.org/wp-content/uploads/2018/09/NJDEP-logo.jpg')no-repeat bottom fixed;")
 ###############################################################################
-# Define server logic required to draw a histogram
+# Define server logic
 server <- function(input, output,session) {
   
   #res_auth <- secure_server(
@@ -355,6 +364,16 @@ server <- function(input, output,session) {
     },
     content = function(file) {
       ggsave(file, device = "pdf", width = 11.5, height = 8)
+    }
+  )
+  
+  # Download handler for the entire dataset
+  output$downloaddata <- downloadHandler(
+    filename = function() {
+      "complete_dataset.csv"  # Adjust filename as needed
+    },
+    content = function(file) {
+      write.csv(criteriap, file)
     }
   )
   
