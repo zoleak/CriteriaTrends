@@ -17,13 +17,16 @@ if (!require(pacman)) {
   
 }
 
-pacman::p_load("shiny","tidyverse","readxl","shinycssloaders","shinymanager","shinyWidgets")
+pacman::p_load("shiny","tidyverse","readxl","shinycssloaders",
+               "shinymanager","bslib","bsicons","shinyWidgets")
 ###############################################################################
 # load in necessary packages
 library(shiny)
 library(tidyverse)
 library(readxl)
 library(shinycssloaders)
+library(bslib)
+library(bsicons)
 library(shinyWidgets)
 #library(shinymanager)
 ###############################################################################
@@ -49,7 +52,6 @@ pm2.5<-read_xlsx("data/PM2.5_1999_2022.xlsx")%>%
   mutate(pollutant = "PM2.5",
     Year = as.numeric(Year))
   
-
 pm2.5_annual<-read_xlsx("data/PM2.5_1999_2020_annual_weighted_mean.xlsx")%>%
   pivot_longer('1999':'2020', names_to = "Year", values_to = "value")%>%
   mutate(pollutant = "PM2.5 Annual Average",
@@ -61,7 +63,7 @@ pm2.5_annual<-read_xlsx("data/PM2.5_1999_2020_annual_weighted_mean.xlsx")%>%
 criteriap<-bind_rows(no2,so2,ozone,co,pm10,pm2.5,pm2.5_annual)
 ###########################################################################################
 ###########################################################################################
-## theme for plots ####
+## theme for plot ####
 graph_theme<- theme_linedraw()+
   theme(plot.title=element_text(size=15, face="bold",vjust=0.5,hjust = 0.5),
         panel.grid.major.x = element_blank(),
@@ -90,15 +92,13 @@ graph_theme<- theme_linedraw()+
 #)
 ###############################################################################
 # Define UI for application
-ui <- fluidPage(
-  useShinydashboard(),
+ui <- page_sidebar(
     # Application title
-    titlePanel("Criteria Air Pollutant Trends"),
-
+    title="Criteria Air Pollutant Trends",
     # Sidebar with a drop down menus to filter data
-    sidebarLayout(
-        sidebarPanel(
-          selectInput("pollutant", label = strong("Select Pollutant:", style = "color:Navy;font-weight: bold;"),
+    sidebar=sidebar(
+          selectInput("pollutant", label = strong("Select Pollutant:", 
+                                                  style = "color:Navy;font-weight: bold;"),
                       choices = unique(criteriap$pollutant)),
             uiOutput("county"),
             uiOutput("station"),
@@ -107,28 +107,45 @@ ui <- fluidPage(
             label = "Download Plot",
             style = "jelly",           # Choose a stylish style
             color = "primary"        # Customize color
-          ),
+          ),br(),
           downloadBttn(
             outputId = "downloaddata",  # Give a new outputId
             label = "Download Data",
             style = "jelly",
             color = "success"  # Green color
-          ),
+          ),br(),
           # Adding a link to EPA website
           tags$a(href = "https://www.epa.gov/criteria-air-pollutants", target = "_blank",
                  icon("question-circle"), " Learn more")
         ),
-    # Main panel 
-        mainPanel(
-          fluidRow(
-          uiOutput("dynamicBox"),
-          uiOutput("dynamicBoxMin"),
-          uiOutput("dynamicBoxAvg"),
-           plotOutput("plot1")%>%
-             withSpinner(type = 5, color = "blue")
-        ))
-    )
-)
+    # Main panel
+    card(
+      layout_column_wrap(
+        width = "250px",
+        value_box(
+          title = "Max Concentration",
+          value = textOutput("box_max"),
+          showcase = bsicons::bs_icon("graph-up-arrow"),
+          full_screen = FALSE, fill = TRUE
+        ),
+        value_box(
+          title = "Min Concentration",
+          value = textOutput("box_min"),
+          showcase = bsicons::bs_icon("graph-down-arrow"),
+          full_screen = FALSE, fill = TRUE
+        ),
+        value_box(
+          title = "Average Concentration",
+          value = textOutput("box_avg"),
+          showcase = bsicons::bs_icon("bar-chart"),
+          full_screen = FALSE, fill = TRUE
+        )
+      )),
+           card(plotOutput("plot1")%>%
+             withSpinner(type = 5, color = "blue"))
+        )
+    
+
 ###############################################################################
 # Wrap your UI with secure_app
 #ui <- secure_app(ui,background  = "linear-gradient(rgba(0, 0, 255, 0.5), 
@@ -148,11 +165,12 @@ server <- function(input, output,session) {
     return(foo)
   })
   
-  output$county<-renderUI({
-    selectizeInput("county_input",label = strong("Select County:",style = "color:Navy;font-weight: bold;"),
-                   choices = unique(datasub()$County),
-                   selected = unique(datasub()$County[1]))})
-  
+  output$county <- renderUI({
+    selectizeInput("county_input",
+                   label = strong("Select County:", style = "color:Navy;font-weight: bold;"),
+                   choices = na.omit(unique(datasub()$County)),  # Exclude NAs
+                   selected = na.omit(unique(datasub()$County)[1]))
+  })
   
   datasub2<-reactive({
     foo<-subset(datasub(),County == input$county_input)
@@ -171,60 +189,44 @@ server <- function(input, output,session) {
     
   })
   
-  # Render the UI Output for Highest Concentration
-  output$dynamicBox <- renderUI({
-    # Your existing logic for highest concentration box here
-    max_row <- datasub3()[which.max(datasub3()$value), ]
-    box_content <- sprintf("Year: %d <br> Value: %.2f", 
-                           max_row$Year, max_row$value)
-    box_content_div <- div(
-      HTML(box_content)
-    )
-    box(
-      title = "Highest Concentration",
-      width = 4,
-      solidHeader = FALSE,
-      background = "navy",
-      icon = icon("chart-line"),
-      box_content_div
-    )
+  # Function to calculate Max, Min, and Average concentrations along with the corresponding years
+  calculate_summary_stats <- function(data) {
+    max_row <- data[data$value == max(data$value), ]
+    min_row <- data[data$value == min(data$value), ]
+    
+    max_val <- max(data$value)
+    min_val <- min(data$value)
+    avg_val <- mean(data$value)
+    
+    max_year <- max_row$Year
+    min_year <- min_row$Year
+    
+    return(list(max_val = max_val, min_val = min_val, avg_val = avg_val,
+                max_year = max_year, min_year = min_year))
+  }
+  
+  # Reactive expression for Max, Min, and Average concentrations
+  summary_stats <- reactive({
+    req(input$pollutant, input$station_input)
+    
+    # Filter data based on selected pollutant, county, and station
+    filtered_data <- datasub3()
+    
+    # Calculate Max, Min, and Average concentrations with years
+    calculate_summary_stats(filtered_data)
   })
   
-  # Render the UI Output for Minimum Concentration/Year
-  output$dynamicBoxMin <- renderUI({
-    # Your logic for minimum concentration/year box here
-    min_row <- datasub3()[which.min(datasub3()$value), ]
-    box_content_min <- sprintf("Year: %d <br> Value: %.2f", 
-                               min_row$Year, min_row$value)
-    box_content_div_min <- div(
-      HTML(box_content_min)
-    )
-    box(
-      title = "Minimum Concentration",
-      width = 4,
-      solidHeader = FALSE,
-      background = "navy",
-      icon = icon("arrow-down"),
-      box_content_div_min
-    )
+  # Render the value boxes with the calculated values
+  output$box_max <- renderText({
+    paste("Value:", summary_stats()$max_val, "\nYear:", summary_stats()$max_year)
   })
   
-  # Render the UI Output for Average Concentration
-  output$dynamicBoxAvg <- renderUI({
-    # Your logic for average concentration box here
-    avg_value <- mean(datasub3()$value)
-    box_content_avg <- sprintf("Average: %.2f", avg_value)
-    box_content_div_avg <- div(
-      HTML(box_content_avg)
-    )
-    box(
-      title = "Average Concentration",
-      width = 4,
-      solidHeader = FALSE,
-      background = "navy",
-      icon = icon("calculator"),
-      box_content_div_avg
-    )
+  output$box_min <- renderText({
+    paste("Value:", summary_stats()$min_val,"\nYear:", summary_stats()$min_year)
+  })
+  
+  output$box_avg <- renderText({
+    paste("Value:", round(summary_stats()$avg_val))  # Average concentration
   })
   
   # Function to generate plots
