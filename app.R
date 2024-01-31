@@ -223,7 +223,7 @@ server <- function(input, output,session) {
   })
   
   output$box_avg <- renderText({
-    round(summary_stats()$avg_val)  # Average concentration
+    round(summary_stats()$avg_val,2)  # Average concentration
   })
   
   # Function to generate plots
