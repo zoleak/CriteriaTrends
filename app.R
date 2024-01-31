@@ -33,28 +33,28 @@ library(shinyWidgets)
 #read in pollutant data
 no2<-read_xlsx("data/NO2_1990_2022.xlsx",sheet = "byYear")%>%
     select(Year:value)%>%
-    mutate(pollutant = "no2")
+    mutate(pollutant = paste0("NO", "\u2082"))
 
 so2<-read_xlsx("data/SO2_1990_2022.xlsx",sheet = "byYear")%>%
-    mutate(pollutant = "so2")
+  mutate(pollutant = paste0("SO", "\u2082"))
 
 ozone<-read_xlsx("data/ozone_1990_2022.xlsx",sheet = "byYear")%>%
-    mutate(pollutant = "ozone")
+    mutate(pollutant = "Ozone")
 
 co<-read_xlsx("data/CO_1990_2022.xlsx",sheet = "byYear")%>%
-    mutate(pollutant = "co")
+    mutate(pollutant = "CO")
 
 pm10<-read_xlsx("data/PM10_1990_2022.xlsx",sheet = "byYear")%>%
-  mutate(pollutant = "PM10",value=as.numeric(value))
+  mutate(pollutant = paste0("PM", "\u2081", "\u2080"), value = as.numeric(value))
 
-pm2.5<-read_xlsx("data/PM2.5_1999_2022.xlsx")%>%
-  pivot_longer('1999':'2022', names_to = "Year", values_to = "value")%>%
-  mutate(pollutant = "PM2.5",
-    Year = as.numeric(Year))
-  
+pm2.5 <- read_xlsx("data/PM2.5_1999_2022.xlsx") %>%
+  pivot_longer('1999':'2022', names_to = "Year", values_to = "value") %>%
+  mutate(pollutant = "PM₂.₅") %>%
+  mutate(Year = as.numeric(Year))
+
 pm2.5_annual<-read_xlsx("data/PM2.5_1999_2020_annual_weighted_mean.xlsx")%>%
   pivot_longer('1999':'2020', names_to = "Year", values_to = "value")%>%
-  mutate(pollutant = "PM2.5 Annual Average",
+  mutate(pollutant = "PM₂.₅ Annual Average",
          State = "NJ",
          Year = as.numeric(Year))%>%
   plyr::rename(c("Station_name" = "Station_Name"))
@@ -126,19 +126,19 @@ ui <- page_sidebar(
           title = "Max Concentration",
           value = textOutput("box_max"),
           showcase = bsicons::bs_icon("graph-up-arrow"),
-          full_screen = FALSE, fill = TRUE
+          full_screen = FALSE, fill = FALSE, height = 100L
         ),
         value_box(
           title = "Min Concentration",
           value = textOutput("box_min"),
           showcase = bsicons::bs_icon("graph-down-arrow"),
-          full_screen = FALSE, fill = TRUE
+          full_screen = FALSE, fill = FALSE, height = 100L
         ),
         value_box(
           title = "Average Concentration",
           value = textOutput("box_avg"),
           showcase = bsicons::bs_icon("bar-chart"),
-          full_screen = FALSE, fill = TRUE
+          full_screen = FALSE, fill = FALSE, height = 100L
         )
       )),
            card(plotOutput("plot1")%>%
@@ -194,15 +194,12 @@ server <- function(input, output,session) {
     max_row <- data[data$value == max(data$value), ]
     min_row <- data[data$value == min(data$value), ]
     
-    max_val <- max(data$value)
-    min_val <- min(data$value)
-    avg_val <- mean(data$value)
+    max_val <- max(data$value,na.rm = TRUE)
+    min_val <- min(data$value,na.rm = TRUE)
+    avg_val <- mean(data$value,na.rm = TRUE)
     
-    max_year <- max_row$Year
-    min_year <- min_row$Year
-    
-    return(list(max_val = max_val, min_val = min_val, avg_val = avg_val,
-                max_year = max_year, min_year = min_year))
+
+    return(list(max_val = max_val, min_val = min_val, avg_val = avg_val))
   }
   
   # Reactive expression for Max, Min, and Average concentrations
@@ -218,19 +215,19 @@ server <- function(input, output,session) {
   
   # Render the value boxes with the calculated values
   output$box_max <- renderText({
-    paste("Value:", summary_stats()$max_val, "\nYear:", summary_stats()$max_year)
+    summary_stats()$max_val
   })
   
   output$box_min <- renderText({
-    paste("Value:", summary_stats()$min_val,"\nYear:", summary_stats()$min_year)
+    summary_stats()$min_val
   })
   
   output$box_avg <- renderText({
-    paste("Value:", round(summary_stats()$avg_val))  # Average concentration
+    round(summary_stats()$avg_val)  # Average concentration
   })
   
   # Function to generate plots
-  generate_plot <- function(data, pollutant, county,title,stations) {
+  generate_plot <- function(data,pollutant,county,title,stations) {
     ggplot(data, aes(x = Year, y = value, color = Station_Name)) +
       geom_line(size = 1.3) +
       ggtitle(title) +
@@ -242,13 +239,13 @@ server <- function(input, output,session) {
   # Function to get NAAQS text
   get_naaqs_text <- function(pollutant) {
     naaqs_text <- switch(pollutant,
-                         "ozone" = "4th-Highest Daily Maximum 8-Hour Concentration (ppm)",
-                         "no2" = "98th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",
-                         "co" = "2nd Highest 8-Hour Average Concentration (ppm)",
-                         "so2" = "99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",
-                         "PM10" = "2nd Highest 24-Hour Average Concentration (µg/m³)",
-                         "PM2.5" = "98th Percentile 24-Hour Average Concentration (µg/m³)",
-                         "PM2.5 Annual Average" = "Annual Average Concentration (µg/m³)"
+                         "Ozone" = "4th-Highest Daily Maximum 8-Hour Concentration (ppm)",
+                         "NO₂" = "98th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",
+                         "CO" = "2nd Highest 8-Hour Average Concentration (ppm)",
+                         "SO₂" = "99th Percentile of Daily Maximum 1-Hour Average Concentration (ppb)",
+                         "PM₁₀" = "2nd Highest 24-Hour Average Concentration (µg/m³)",
+                         "PM₂.₅" = "98th Percentile 24-Hour Average Concentration (µg/m³)",
+                         "PM₂.₅ Annual Average" = "Annual Average Concentration (µg/m³)"
     )
     return(naaqs_text)
   }
@@ -256,13 +253,13 @@ server <- function(input, output,session) {
   # Function to get y-axis label text
   get_ylab_text <- function(pollutant) {
     ylab_text <- switch(pollutant,
-                        "ozone" = "Concentration, Parts per Million (ppm)",
-                        "no2" = "Concentration, Parts per Billion (ppb)",
-                        "co" = "Concentration, Parts per Million (ppm)",
-                        "so2" = "Concentration, Parts per Billion (ppb)",
-                        "PM10" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
-                        "PM2.5" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
-                        "PM2.5 Annual Average" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))
+                        "Ozone" = "Concentration, Parts per Million (ppm)",
+                        "NO₂" = "Concentration, Parts per Billion (ppb)",
+                        "CO" = "Concentration, Parts per Million (ppm)",
+                        "SO₂" = "Concentration, Parts per Billion (ppb)",
+                        "PM₁₀" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
+                        "PM₂.₅" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
+                        "PM₂.₅ Annual Average" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))
     )
     return(ylab_text)
   }
@@ -270,7 +267,7 @@ server <- function(input, output,session) {
   # Function to add additional layers to the plot
   get_additional_layers <- function(pollutant) {
     additional_layers <- switch(pollutant,
-                                "ozone" = list(
+                                "Ozone" = list(
                                   geom_segment(aes(x = 1997, xend = 2008, y = 0.08, yend = 0.08), color = "red", size = 1.3, linetype = "dashed"),
                                   geom_segment(aes(x = 2008, xend = 2016, y = 0.075, yend = 0.075), color = "red", size = 1.3, linetype = "dashed"),
                                   geom_segment(aes(x = 2016, xend = 2018, y = 0.070, yend = 0.070), color = "red", size = 1.3, linetype = "dashed"),
@@ -279,31 +276,31 @@ server <- function(input, output,session) {
                                            label = c("1997 8-Hour NAAQS = 0.08 ppm", "2008 8-Hour NAAQS = 0.075 ppm", "2016 8-Hour NAAQS = 0.070 ppm"),
                                            family = "", fontface = 3, size = 4)
                                 ),
-                                "no2" = list(
+                                "NO₂" = list(
                                   geom_segment(aes(x = 2010, xend = 2018, y = 100, yend = 100), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
                                   annotate("text", x = c(2014), y = c(90), label = c("2010 1-Hour NAAQS = 100 ppb"),
                                            family = "", fontface = 3, size = 4)
                                 ),
-                                "co" = list(
+                                "CO" = list(
                                   geom_segment(aes(x = 1990, xend = 2018, y = 9, yend = 9), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
                                   annotate("text", x = c(2010), y = c(8.5), label = c("8 Hour NAAQS = 9 ppm"),
                                            family = "", fontface = 3, size = 4)
                                 ),
-                                "so2" = list(
+                                "SO₂" = list(
                                   geom_segment(aes(x = 2010, xend = 2018, y = 75, yend = 75), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
                                   annotate("text", x = c(2012), y = c(60), label = c("2010 1-Hour NAAQS = 75 ppb"),
                                            family = "", fontface = 3, size = 4)
                                 ),
-                                "PM10" = list(
+                                "PM₁₀" = list(
                                   geom_segment(aes(x = 1990, xend = 2018, y = 150, yend = 150), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
                                   annotate("text", x = c(2010), y = c(145), label = c("24-Hour NAAQS = 150 µg/m^3"),
                                            family = "", fontface = 3, size = 4)
                                 ),
-                                "PM2.5" = list(
+                                "PM₂.₅" = list(
                                   geom_segment(aes(x = 1999, xend = 2006, y = 65, yend = 65), color = "red", size = 1.3, linetype = "dashed"),
                                   geom_segment(aes(x = 2006, xend = 2018, y = 35, yend = 35), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(1999, 2022, by = 1)),
@@ -311,7 +308,7 @@ server <- function(input, output,session) {
                                                                                                "2006 24-Hour NAAQS = 35 µg/m^3"),
                                            family = "", fontface = 3, size = 4)
                                 ),
-                                "PM2.5 Annual Average" = list(
+                                "PM₂.₅ Annual Average" = list(
                                   geom_segment(aes(x = 2000, xend = 2018, y = 15, yend = 15), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(2000, 2022, by = 1)),
                                   annotate("text", x = c(2013), y = c(14), label = c("Annual NAAQS = 15 µg/m^3"),
@@ -334,9 +331,9 @@ server <- function(input, output,session) {
     
     # Check if there is more than 1 station selected
     if (length(station_name) > 1) {
-      title_text  <- paste(county_name, " County ", input$pollutant, " Trend\n", get_naaqs_text(input$pollutant))
+      title_text  <- paste(county_name,"County",input$pollutant, "Trend\n", get_naaqs_text(input$pollutant))
     } else {
-      title_text  <- paste(station_name, input$pollutant, " Trend\n", get_naaqs_text(input$pollutant))
+      title_text  <- paste(station_name, input$pollutant, "Trend\n", get_naaqs_text(input$pollutant))
     }
     
     generate_plot(datasub3(), input$pollutant,county_name ,title_text , input$station_input)
