@@ -91,10 +91,16 @@ graph_theme<- theme_linedraw()+
 #  stringsAsFactors = FALSE
 #)
 ###############################################################################
+# Custom theme for app
+my_theme<- bs_theme(
+  bg = "rgba(255, 255, 255, 0.02)", primary = "#5582F3", 
+  font_scale = NULL, bootswatch = "journal", fg = "rgb(0, 0, 0)")
+###############################################################################
 # Define UI for application
 ui <- page_sidebar(
     # Application title
     title="Criteria Air Pollutant Trends",
+    theme = my_theme,
     # Sidebar with a drop down menus to filter data
     sidebar=sidebar(
           selectInput("pollutant", label = strong("Select Pollutant:", 
@@ -144,8 +150,6 @@ ui <- page_sidebar(
            card(plotOutput("plot1")%>%
              withSpinner(type = 5, color = "blue"))
         )
-    
-
 ###############################################################################
 # Wrap your UI with secure_app
 #ui <- secure_app(ui,background  = "linear-gradient(rgba(0, 0, 255, 0.5), 
@@ -154,7 +158,6 @@ ui <- page_sidebar(
 ###############################################################################
 # Define server logic
 server <- function(input, output,session) {
-  
   #res_auth <- secure_server(
   #  check_credentials = check_credentials(credentials)
   #)
@@ -257,10 +260,10 @@ server <- function(input, output,session) {
                         "NO₂" = "Concentration, Parts per Billion (ppb)",
                         "CO" = "Concentration, Parts per Million (ppm)",
                         "SO₂" = "Concentration, Parts per Billion (ppb)",
-                        "PM₁₀" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
-                        "PM₂.₅" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")")),
-                        "PM₂.₅ Annual Average" = expression(paste("Concentration, Micrograms per Cubic Meter (µg/m"^3,")"))
-    )
+                        "PM₁₀" = "Concentration, Micrograms per Cubic Meter (µg/m³)",
+                        "PM₂.₅" = "Concentration, Micrograms per Cubic Meter (µg/m³)",
+                        "PM₂.₅ Annual Average" = "Concentration, Micrograms per Cubic Meter (µg/m³)")
+    
     return(ylab_text)
   }
   
@@ -297,21 +300,21 @@ server <- function(input, output,session) {
                                 "PM₁₀" = list(
                                   geom_segment(aes(x = 1990, xend = 2018, y = 150, yend = 150), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(1990, 2022, by = 1)),
-                                  annotate("text", x = c(2010), y = c(145), label = c("24-Hour NAAQS = 150 µg/m^3"),
+                                  annotate("text", x = c(2010), y = c(145), label = c("24-Hour NAAQS = 150 µg/m³"),
                                            family = "", fontface = 3, size = 4)
                                 ),
                                 "PM₂.₅" = list(
                                   geom_segment(aes(x = 1999, xend = 2006, y = 65, yend = 65), color = "red", size = 1.3, linetype = "dashed"),
                                   geom_segment(aes(x = 2006, xend = 2018, y = 35, yend = 35), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(1999, 2022, by = 1)),
-                                  annotate("text", x = c(2002, 2012), y = c(60, 30), label = c("1999 24-Hour NAAQS = 65 µg/m^3",
-                                                                                               "2006 24-Hour NAAQS = 35 µg/m^3"),
+                                  annotate("text", x = c(2002, 2012), y = c(60, 30), label = c("1999 24-Hour NAAQS = 65 µg/m³",
+                                                                                               "2006 24-Hour NAAQS = 35 µg/m³"),
                                            family = "", fontface = 3, size = 4)
                                 ),
                                 "PM₂.₅ Annual Average" = list(
                                   geom_segment(aes(x = 2000, xend = 2018, y = 15, yend = 15), color = "red", size = 1.3, linetype = "dashed"),
                                   scale_x_continuous(breaks = seq(2000, 2022, by = 1)),
-                                  annotate("text", x = c(2013), y = c(14), label = c("Annual NAAQS = 15 µg/m^3"),
+                                  annotate("text", x = c(2013), y = c(14), label = c("Annual NAAQS = 15 µg/m³"),
                                            family = "", fontface = 3, size = 4)
                                 )
     )
@@ -357,12 +360,12 @@ server <- function(input, output,session) {
       
       # Create a dynamic filename
       filename <- paste("plot_", pollutant, "_", paste(selected_locations, collapse = "_"),
-                        ".pdf", sep = "")
+                        ".jpeg", sep = "")
       
       return(filename)
     },
     content = function(file) {
-      ggsave(file, device = "pdf", width = 11.5, height = 8)
+      ggsave(file, device = "jpeg", width = 11.5, height = 8)
     }
   )
   
